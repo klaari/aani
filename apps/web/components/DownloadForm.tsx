@@ -82,17 +82,16 @@ export default function DownloadForm({ onJobCreated }: Props) {
     <form onSubmit={handleSubmit}>
       <VStack gap="sm">
         <HStack gap="sm">
-          <div className="flex-1">
-            <Input
-              ref={inputRef}
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onFocus={handleFocus}
-              placeholder="Paste a YouTube URL..."
-              disabled={loading}
-            />
-          </div>
+          <Input
+            ref={inputRef}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onFocus={handleFocus}
+            placeholder="Paste a YouTube URL..."
+            disabled={loading}
+            className="flex-1"
+          />
           <Button
             label={loading ? "Adding…" : "Add"}
             type="submit"

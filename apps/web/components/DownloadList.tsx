@@ -1,16 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import type { DownloadJob, DownloadJobStatus, WsJobStatusMessage } from "@aani/types";
-import { HStack, Surface, Text, VStack } from "./ui";
+import type {
+  DownloadJob,
+  DownloadJobStatus,
+  WsJobStatusMessage,
+} from "@aani/types";
+import {
+  Button,
+  Divider,
+  HStack,
+  IconButton,
+  Surface,
+  Text,
+  VStack,
+} from "./ui";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3000";
 
+type IconTone = "muted" | "accent" | "warning" | "critical";
+
 const STATUS_ICON: Record<
   DownloadJobStatus,
-  { symbol: string; tone: "muted" | "accent" | "warning" | "critical" }
+  { symbol: string; tone: IconTone }
 > = {
   queued: { symbol: "◷", tone: "muted" },
   downloading: { symbol: "↓", tone: "accent" },
@@ -18,13 +32,6 @@ const STATUS_ICON: Record<
   completed: { symbol: "✓", tone: "muted" },
   failed: { symbol: "✕", tone: "critical" },
 };
-
-const toneClass = {
-  muted: "text-ink-muted",
-  accent: "text-cobalt",
-  warning: "text-warning",
-  critical: "text-critical",
-} as const;
 
 interface Props {
   jobs: DownloadJob[];
@@ -165,7 +172,10 @@ export default function DownloadList({ jobs, setJobs }: Props) {
       const token = await getToken();
       const res = await fetch(`${API_URL}/downloads`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ url: job.url }),
       });
       if (!res.ok) return;
@@ -201,7 +211,10 @@ export default function DownloadList({ jobs, setJobs }: Props) {
       for (const job of expiredJobs) {
         await fetch(`${API_URL}/downloads`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ url: job.url }),
         });
       }
@@ -219,20 +232,18 @@ export default function DownloadList({ jobs, setJobs }: Props) {
       {expiredJobs.length > 0 ? (
         <Surface tone="raised" rounded="lg" pad="md" bordered>
           <HStack gap="sm" align="center">
-            <span className="text-warning">⚠</span>
-            <div className="flex-1">
-              <Text variant="caption" tone="warning">
-                {expiredJobs.length} download
-                {expiredJobs.length > 1 ? "s" : ""} failed — cookies were expired
-              </Text>
-            </div>
-            <button
+            <Text tone="warning">⚠</Text>
+            <Text variant="caption" tone="warning" className="flex-1">
+              {expiredJobs.length} download
+              {expiredJobs.length > 1 ? "s" : ""} failed — cookies were expired
+            </Text>
+            <Button
+              label={retrying ? "Retrying…" : "Retry all"}
+              variant="ghost"
+              size="sm"
               onClick={handleRetryExpired}
               disabled={retrying}
-              className="text-warning text-caption font-semibold hover:opacity-80 disabled:opacity-50 transition-opacity shrink-0"
-            >
-              {retrying ? "Retrying…" : "Retry all"}
-            </button>
+            />
           </HStack>
         </Surface>
       ) : null}
@@ -241,8 +252,8 @@ export default function DownloadList({ jobs, setJobs }: Props) {
         <Text variant="eyebrow" tone="muted">
           Recent
         </Text>
-        <ul>
-          {jobs.map((job) => {
+        <VStack>
+          {jobs.map((job, idx) => {
             const icon = STATUS_ICON[job.status];
             const isActive =
               job.status === "downloading" ||
@@ -251,61 +262,62 @@ export default function DownloadList({ jobs, setJobs }: Props) {
             const isFailed = job.status === "failed";
 
             return (
-              <li
-                key={job.id}
-                className="flex items-center gap-md py-sm border-b border-paper-edge last:border-b-0"
-              >
-                {isActive ? (
-                  <span
-                    className={`${toneClass[icon.tone]} text-body-lg w-5 text-center shrink-0`}
-                  >
-                    {icon.symbol}
-                  </span>
-                ) : null}
-                <div className="flex-1 min-w-0">
-                  <Text variant="body" numberOfLines={1}>
-                    {job.title ?? job.url}
-                  </Text>
-                  {job.artist ? (
-                    <Text variant="caption" tone="muted" numberOfLines={1}>
-                      {job.artist}
+              <Fragment key={job.id}>
+                {idx > 0 ? <Divider /> : null}
+                <HStack gap="md" padY="sm">
+                  {isActive ? (
+                    <Text
+                      variant="bodyLg"
+                      tone={icon.tone}
+                      align="center"
+                      className="w-5 shrink-0"
+                    >
+                      {icon.symbol}
                     </Text>
                   ) : null}
-                  {job.error ? (
-                    <Text variant="caption" tone="critical" numberOfLines={2}>
-                      {job.error}
+                  <VStack className="flex-1 min-w-0">
+                    <Text variant="body" numberOfLines={1}>
+                      {job.title ?? job.url}
+                    </Text>
+                    {job.artist ? (
+                      <Text variant="caption" tone="muted" numberOfLines={1}>
+                        {job.artist}
+                      </Text>
+                    ) : null}
+                    {job.error ? (
+                      <Text variant="caption" tone="critical" numberOfLines={2}>
+                        {job.error}
+                      </Text>
+                    ) : null}
+                  </VStack>
+                  {job.duration ? (
+                    <Text variant="caption" tone="muted" numeric>
+                      {formatDuration(job.duration)}
                     </Text>
                   ) : null}
-                </div>
-                {job.duration ? (
-                  <Text variant="caption" tone="muted" numeric>
-                    {formatDuration(job.duration)}
-                  </Text>
-                ) : null}
-                {isFailed ? (
-                  <HStack gap="xs">
-                    <button
-                      onClick={() => handleRetry(job)}
-                      aria-label="Retry"
-                      title="Retry"
-                      className="p-xs text-cobalt hover:opacity-80 transition-opacity"
-                    >
-                      ↺
-                    </button>
-                    <button
-                      onClick={() => handleDismiss(job)}
-                      aria-label="Dismiss"
-                      title="Dismiss"
-                      className="p-xs text-ink-faint hover:text-ink transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </HStack>
-                ) : null}
-              </li>
+                  {isFailed ? (
+                    <HStack gap="xs">
+                      <IconButton
+                        aria-label="Retry"
+                        title="Retry"
+                        onClick={() => handleRetry(job)}
+                      >
+                        ↺
+                      </IconButton>
+                      <IconButton
+                        aria-label="Dismiss"
+                        title="Dismiss"
+                        onClick={() => handleDismiss(job)}
+                      >
+                        ✕
+                      </IconButton>
+                    </HStack>
+                  ) : null}
+                </HStack>
+              </Fragment>
             );
           })}
-        </ul>
+        </VStack>
       </VStack>
     </VStack>
   );

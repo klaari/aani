@@ -26,11 +26,18 @@ changes month to month.
 - Next.js 15 + React 19 + Tailwind 4 on Vercel
 - Clerk Next.js SDK for auth
 - Library, playlists (index + detail), downloads, settings pages
-- **No shared design system yet** — components use inline Tailwind
-  classes against a dark zinc/black palette, not the editorial
-  paper/ink/cobalt tokens used on mobile. Building a web equivalent
-  of `apps/mobile/components/ui` (sharing tokens via `design/raw.js`)
-  is the next significant piece of work here.
+- **Design system: partially ported from mobile.** Tokens are shared
+  (`apps/web/design/raw.js` re-exports the mobile source of truth;
+  `tailwind.config.ts` consumes it). 14 primitives exist in
+  `apps/web/components/ui/` — Text, Stack, Inline, Surface, Button,
+  IconButton, Input, Field, ListRow, StatusDot, PageSection,
+  HeroSection, Divider. Screens are on the paper/ink/cobalt palette
+  but still mix raw `<div>` + inline Tailwind for patterns the
+  primitives don't cover yet (custom selects, chip clusters, settings
+  rows). Remaining work: port high-value missing primitives
+  (Pressable, Cluster, ListSection, ProgressBar, Banner, Switch,
+  SettingsRow, Screen shell, AppBar) and migrate the screens that
+  still inline.
 
 ## Deferred / not yet implemented
 - Automatic BPM detection on ingest (today BPM is entered manually).
@@ -40,7 +47,8 @@ changes month to month.
   rename via the web app's PATCH `/tracks/:id` mutates that title for
   every user who shares the deduped row. Single-user today; worth
   fixing before any second user joins.
-- Web design system (see above).
+- Finish porting the web design system (see `apps/web` above for the
+  remaining primitive + screen-migration gap).
 
 ## Decisions log
 - 2026-05-09: phase-based gating dropped from CLAUDE.md. Phase 2
