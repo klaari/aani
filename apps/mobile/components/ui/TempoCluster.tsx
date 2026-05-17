@@ -171,10 +171,7 @@ export function TempoCluster({
               BPM
             </Text>
           </View>
-          <Text
-            variant="numeric"
-            style={{ fontSize: 11, color: subColor }}
-          >
+          <Text variant="numeric" style={{ color: subColor }}>
             {altered && originalBpm != null
               ? `${rateDisplay} from ${originalBpm.toFixed(1)}`
               : rateDisplay}
